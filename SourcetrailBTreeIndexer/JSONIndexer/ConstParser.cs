@@ -74,15 +74,15 @@ internal partial class ParseScalarExpr : ParserBase
    /// <returns>The token</returns>
    internal override Token Token(Lexer Input, out TokenPrecedence Prec)
    {
-        LexState Start = Input.Save();
+        var Start = Input.Save();
         if (Input . Number(out double V))
         {
            Prec = Tok2Prec[Token_Literal];
            return new Token(V, Start, Input.Idx);
         }
+        Input.Restore(Start);
 
       // Check to see if it is a defined constant
-      LexState State = Input . Save();
       string   S     = Input . Symbol ();
         if (null != S
            && Constant.TryGetValue(S, out object CV))
@@ -90,15 +90,15 @@ internal partial class ParseScalarExpr : ParserBase
             Prec = Tok2Prec[Token_Literal];
             return new Token(CV, Start, Input.Idx);
         }
-        Input . Restore(State);
+        Input . Restore(Start);
 
 
         // Scan each of the tokens to see if they match
-        foreach (TokenPrecedence T in TokPrecs)
+        foreach (var T in TokPrecs)
             if (Input.KeywordMatch(T.Token))
             {
                 Prec = T;
-                return new Token(T.Token, State, Input.Idx);
+                return new Token(T.Token, Start, Input.Idx);
             }
 
 

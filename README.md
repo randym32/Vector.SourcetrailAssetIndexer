@@ -19,6 +19,21 @@ Open the `.sln` in VisualStudio and build.
 
 ## Usage
 
+### Install Sourcetrail
+First, install the [Sourcetrail](https://www.sourcetrail.com/) tool.  It can be found at:
+* [https://www.sourcetrail.com/](https://www.sourcetrail.com/)
+* [https://github.com/CoatiSoftware/Sourcetrail](https://github.com/CoatiSoftware/Sourcetrail)
+
+The [documentation](https://www.sourcetrail.com/documentation/) is at [https://www.sourcetrail.com/documentation/](https://www.sourcetrail.com/documentation/)
+
+Optional:
+* Install plugin to your favorite editor.  See the instructions
+  (Many plug0ins source can be found at  https://github.com/CoatiSoftware )
+
+Next, practice exploring one of the sample projects included in Sourcetrail.  It takes a little bit to get used to it’s idiom and controls.
+
+### Command-line Arguments
+
 The following command-line arguments are supported:
 
 * -i `assembly-path`   
@@ -46,6 +61,6 @@ In that case, install the runtime for Visual Studio 2019 from [this link](https:
 (make sure to install the x64 version)
 
 
-## Credits Grateful Acknowledgements and Special Thanks
+## Credits, Grateful Acknowledgements and Special Thanks
 
 This is based on code from [SourcetrailDotnetIndexer](https://github.com/packdat/SourcetrailDotnetIndexer)

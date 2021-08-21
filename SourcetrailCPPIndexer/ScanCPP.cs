@@ -59,13 +59,17 @@ namespace SourcetrailAssetsIndexer
     }
     class Inherit:Location
     {
+        public SymbolKind parentKind;
+        public SymbolKind kind;
         public string parent;
         public int aLine0, aCol0, aLine1, aCol1;
 
-        public Inherit(string parent, List<int> lineNums, int start, int end, int assignStart, int assignEnd):
+        public Inherit(SymbolKind kind, SymbolKind parentKind, string parent, List<int> lineNums, int start, int end, int assignStart, int assignEnd):
             base(lineNums, start,end)
         {
-            this.parent = parent;
+            this.kind       = kind;
+            this.parentKind = parentKind;
+            this.parent     = parent;
             aLine0 = LineCol(lineNums, assignStart, out aCol0);
             aLine1 = LineCol(lineNums, assignEnd, out aCol1);
             aCol1--;
@@ -77,14 +81,50 @@ namespace SourcetrailAssetsIndexer
     /// </summary>
     internal partial class DataCollector
     {
-        static Regex BehaviorRef = new Regex(@"\bBEHAVIOR_CLASS\((\w\w+)\)|\bBEHAVIOR_ID\((\w\w+)\)");
-        static Regex BehaviorDecl = new Regex(@"\bclass\s+Behavior(\w+)\s*:\s*public\s+ICozmoBehavior");
-        static Regex CondDecl = new Regex(@"\bclass\s+Condition(\w+)\s*:\s*public\s+IBEICondition");
-        static Regex ParamDecl = new Regex(@"\bchar\s*\*\s*k\w+\s*=\s*"+"\"(\\w+)\"");
+        /// <summary>
+        /// Match behavior class and reference marker
+        /// </summary>
+        static readonly Regex BehaviorRef = new Regex(@"\bBEHAVIOR_CLASS\((\w\w+)\)|\bBEHAVIOR_ID\((\w\w+)\)");
+        /// <summary>
+        /// Match where behavior classes are declared
+        /// </summary>
+        static readonly Regex BehaviorDecl = new Regex(@"\bclass\s+Behavior(\w+)\s*:\s*public\s+ICozmoBehavior");
+        static readonly Regex CondDecl = new Regex(@"\bclass\s+Condition(\w+)\s*:\s*public\s+IBEICondition");
+        static readonly Regex ParamDecl = new Regex(@"\bchar\s*\*\s*k\w+\s*=\s*"+"\"(\\w+)\"");
 
-        static readonly ConcurrentDictionary<string, Dictionary<string, Inherit>> ParsedFile1 = new ConcurrentDictionary<string, Dictionary<string, Inherit>>();
-        static readonly ConcurrentDictionary<string, Dictionary<string, List<Location>>> ParsedFile2 = new ConcurrentDictionary<string, Dictionary<string, List<Location>>>();
-        static readonly ConcurrentDictionary<string, Dictionary<string, List<Location>>> ParsedFile3 = new ConcurrentDictionary<string, Dictionary<string, List<Location>>>();
+        /// <summary>
+        /// Match references to consol variables, and configuration variables, etc
+        /// </summary>
+        static readonly Regex ConsoleVarRef = new Regex(@"\bCONFIG_VAR\w*\s*\([^,]+,\s*(\w+)|\bCONSOLE_VAR\w*\s*\([^,]+,\s*(\w+)|\bCONSOLE_FUNC\w*\s*\(\s*(\w+)|\bENTITLEMENT\s*\(\s*(\w+)|\bFEATURE_FLAG\s*\(\s*(\w+)");
+
+        /// <summary>
+        /// Match declaration of fault code
+        /// </summary>
+        static readonly Regex FaultCodeDecl = new Regex(@"\b(\w+)\s*=\s*(\d+)");
+
+        /// <summary>
+        /// Match fault and shutdown code reference
+        /// </summary>
+        static readonly Regex FaultCodeRef = new Regex(@"\bFaultCode\s*::\s*(\w+)|\bShutdown\s*::\s*(\w+)");
+
+
+        static readonly ConcurrentDictionary<string, Dictionary<string, Inherit>> ParsedFileClassDecl = new ConcurrentDictionary<string, Dictionary<string, Inherit>>();
+        /// <summary>
+        /// Where classes are referenced
+        /// </summary>
+        static readonly ConcurrentDictionary<string, Dictionary<string, List<Location>>> ParsedFileClassRef = new ConcurrentDictionary<string, Dictionary<string, List<Location>>>();
+        /// <summary>
+        /// Where a variable is referenced
+        /// </summary>
+        static readonly ConcurrentDictionary<string, Dictionary<string, List<Location>>> ParsedFileVarRef = new ConcurrentDictionary<string, Dictionary<string, List<Location>>>();
+        /// <summary>
+        /// Where an enumeration is declared
+        /// </summary>
+        static readonly ConcurrentDictionary<string, Dictionary<string, Inherit>> ParsedFileEnumDecl = new ConcurrentDictionary<string, Dictionary<string, Inherit>>();
+        /// <summary>
+        /// Where an enumeration is refernced
+        /// </summary>
+        static readonly ConcurrentDictionary<string, Dictionary<string, List<Location>>> ParsedFileEnumRef = new ConcurrentDictionary<string, Dictionary<string, List<Location>>>();
 
         /// <summary>
         /// Load the C++ code that links to the behavior tree
@@ -136,44 +176,131 @@ namespace SourcetrailAssetsIndexer
                 start = idx;
             }
 
-            var Parent = new Dictionary<string, Inherit>();
-            // Find where it declared
-            foreach (Match match in BehaviorDecl.Matches(text))
+            // Check to see if it is a faultCodes.h file defining the fault codes
+            var fileName = Path.GetFileName(currentFile).ToLower();
+            if (fileName is "faultcodes.h" && Program.scanFaultCodes)
             {
-                var g = match.Groups[1];
-                Parent[g.Value] = new Inherit("ICozmoBehavior", lineStart, g.Index-8, g.Index+g.Length, match.Index, match.Index + match.Length);
+                var ParentEnumDecl = new Dictionary<string, Inherit>();
+                ParsedFileEnumDecl[currentFile] = ParentEnumDecl;
+
+                // Find where fault codes are declared
+                foreach (Match match in FaultCodeDecl.Matches(text))
+                {
+                    var name = match.Groups[1];
+                    var code = match.Groups[2];
+                    ParentEnumDecl[name.Value] = new Inherit(SymbolKind.SYMBOL_ENUM_CONSTANT, SymbolKind.SYMBOL_ENUM, "FaultCode", lineStart, name.Index, name.Index + name.Length, name.Index, name.Index + name.Length);
+                    // Add add a code.. not sure if this works yet
+                    ParentEnumDecl[code.Value] = new Inherit(SymbolKind.SYMBOL_ENUM_CONSTANT, SymbolKind.SYMBOL_ENUM, name.Value, lineStart, code.Index, code.Index + code.Length, name.Index, code.Index + code.Length);
+                }
+
+                return;
             }
-            foreach (Match match in CondDecl.Matches(text))
+
+            // Scan where classes are declared
+            var ParentClassDecl = new Dictionary<string, Inherit>();
+            ParsedFileClassDecl[currentFile] = ParentClassDecl;
+            if (Program.scanBehaviorTree)
             {
-                var g = match.Groups[1];
-                Parent[g.Value] = new Inherit("IBEICondition", lineStart, g.Index-9, g.Index + g.Length, match.Index, match.Index + match.Length);
+                // Find where behavior classes are declared
+                foreach (Match match in BehaviorDecl.Matches(text))
+                {
+                    var g = match.Groups[1];
+                    ParentClassDecl[g.Value] = new Inherit(SymbolKind.SYMBOL_CLASS, SymbolKind.SYMBOL_CLASS, "ICozmoBehavior", lineStart, g.Index - 8, g.Index + g.Length, match.Index, match.Index + match.Length);
+                }
+                foreach (Match match in CondDecl.Matches(text))
+                {
+                    var g = match.Groups[1];
+                    ParentClassDecl[g.Value] = new Inherit(SymbolKind.SYMBOL_CLASS, SymbolKind.SYMBOL_CLASS, "IBEICondition", lineStart, g.Index - 9, g.Index + g.Length, match.Index, match.Index + match.Length);
+                }
             }
-            ParsedFile1[currentFile] = Parent;
 
             // Find where it used
             var Uses = new Dictionary<string, List<Location>>();
             foreach (Match match in BehaviorRef.Matches(text))
             {
-                var g = match.Groups[1];
-                if (g.Value is "")
-                    g = match.Groups[2];
+                Capture g = null;
+                var matchIdx = 0;
+                for (var idx = 1; idx < match.Groups.Count; idx++)
+                {
+                    g = match.Groups[idx];
+                    matchIdx = idx;
+                    if (!(g.Value is ""))
+                        break;
+                }
+                // Check if we are scanning for this kind of match
+                if (!Program.scanBehaviorTree && matchIdx >= 1 && matchIdx <= 2)
+                {
+                    g = null;
+                }
+                if (null == g)
+                    continue;
                 if (!Uses.TryGetValue(g.Value, out var list))
                     Uses[g.Value] = list = new List<Location>();
                 list.Add(new Location(lineStart, g.Index, g.Index + g.Length));
             }
-            ParsedFile2[currentFile] = Uses;
+            ParsedFileClassRef[currentFile] = Uses;
+
+            // Scan use of fault codes and shutdown codes
+            if (Program.scanFaultCodes)
+            {
+                // Find where the fault and shutdown codes are used
+                var Uses2 = new Dictionary<string, List<Location>>();
+                foreach (Match match in FaultCodeRef.Matches(text))
+                {
+                    Capture g = null;
+                    var matchIdx = 0;
+                    for (var idx = 1; idx < match.Groups.Count; idx++)
+                    {
+                        g = match.Groups[idx];
+                        matchIdx = idx;
+                        if (!(g.Value is ""))
+                            break;
+                    }
+                    if (null == g)
+                        continue;
+                    if (!Uses2.TryGetValue(g.Value, out var list))
+                        Uses2[g.Value] = list = new List<Location>();
+                    list.Add(new Location(lineStart, g.Index, g.Index + g.Length));
+                }
+                ParsedFileEnumRef[currentFile] = Uses2;
+            }
 
 
             // Find the parameters to condition nodes and declarations
-            var Decls = new Dictionary<string, List<Location>>();
-            foreach (Match match in ParamDecl.Matches(text))
+            if (Program.scanBehaviorTree)
             {
-                var g = match.Groups[1];
-                if (!Decls.TryGetValue(g.Value, out var list))
-                    Decls[g.Value] = list = new List<Location>();
-                list.Add(new Location(lineStart, g.Index, g.Index + g.Length));
+                var Decls = new Dictionary<string, List<Location>>();
+                foreach (Match match in ParamDecl.Matches(text))
+                {
+                    var g = match.Groups[1];
+                    if (!Decls.TryGetValue(g.Value, out var list))
+                        Decls[g.Value] = list = new List<Location>();
+                    list.Add(new Location(lineStart, g.Index, g.Index + g.Length));
+                }
+                ParsedFileVarRef[currentFile] = Decls;
             }
-            ParsedFile3[currentFile] = Decls;
+
+            // Find any console variables, etc
+            if (Program.scanConsoleVars)
+            {
+                string[] x = { "Configuration Variable", "Console Variable", "Console Function", "Entitlement", "Feature Flag" };
+                // Find where variables are declared
+                foreach (Match match in FaultCodeRef.Matches(text))
+                {
+                    Capture g = null;
+                    var matchIdx = 0;
+                    for (var idx = 1; idx < match.Groups.Count; idx++)
+                    {
+                        g = match.Groups[idx];
+                        matchIdx = idx;
+                        if (!(g.Value is ""))
+                            break;
+                    }
+                    if (null == g)
+                        continue;
+                    ParentClassDecl[g.Value] = new Inherit(SymbolKind.SYMBOL_GLOBAL_VARIABLE,SymbolKind.SYMBOL_CLASS,x[matchIdx], lineStart, g.Index - 8, g.Index + g.Length, match.Index, match.Index + match.Length);
+                }
+            }
         }
 
 
@@ -194,17 +321,25 @@ namespace SourcetrailAssetsIndexer
         internal static void UploadCPP(string path)
         {
             var dataCollector = new DataCollector(path);
-            foreach (var kv in ParsedFile1)
+            foreach (var kv in ParsedFileClassDecl)
             {
                 dataCollector.UploadClassDecl(kv.Key, kv.Value);
             }
-            foreach (var kv in ParsedFile2)
+            foreach (var kv in ParsedFileClassRef)
             {
-                dataCollector.UploadClassRef(kv.Key, kv.Value);
+                dataCollector.UploadRef(kv.Key, kv.Value, SymbolKind.SYMBOL_CLASS);
             }
-            foreach (var kv in ParsedFile3)
+            foreach (var kv in ParsedFileVarRef)
             {
-                dataCollector.UploadParamDecl(kv.Key, kv.Value);
+                dataCollector.UploadRef(kv.Key, kv.Value, SymbolKind.SYMBOL_GLOBAL_VARIABLE);
+            }
+            foreach (var kv in ParsedFileEnumDecl)
+            {
+                dataCollector.UploadClassDecl(kv.Key, kv.Value);
+            }
+            foreach (var kv in ParsedFileEnumRef)
+            {
+                dataCollector.UploadRef(kv.Key, kv.Value, SymbolKind.SYMBOL_ENUM);
             }
             dataCollector.Dispose();
         }
@@ -223,11 +358,11 @@ namespace SourcetrailAssetsIndexer
             foreach (var kv in Table)
             {
                 // Add the behavior class name
-                var classId = CollectSymbol(kv.Key, SymbolKind.SYMBOL_CLASS);
+                var classId = CollectSymbol(kv.Key, kv.Value.kind);
                 // Mark where it is in the source
                 CollectReferenceLocation(classId, fileId, kv.Value);
                 // Add that it is an inheritance
-                var parentId = CollectSymbol(kv.Value.parent, SymbolKind.SYMBOL_CLASS);
+                var parentId = CollectSymbol(kv.Value.parent, kv.Value.parentKind);
                 // Mention that it implements the  class/interface
                 var cid = DataCollector.CollectReference(parentId, classId, ReferenceKind.REFERENCE_INHERITANCE);
                 // And mark the location that it does so
@@ -238,19 +373,19 @@ namespace SourcetrailAssetsIndexer
         }
 
         /// <summary>
-        /// Insert the places that a behavior or condition class is referred to
+        /// Insert the places that a behavior or condition class, its parameter, or other parameter is referred to
         /// </summary>
         /// <param name="fileName">The file that this occurs in</param>
         /// <param name="Table">The table of classes refrence locations</param>
         /// <returns>The file id</returns>
-        int UploadClassRef(string fileName, Dictionary<string, List<Location>> Table)
+        int UploadRef(string fileName, Dictionary<string, List<Location>> Table, SymbolKind kind)
         {
             // Create a file id for this file
             var fileId = CollectFile(fileName, "JSON");
             foreach (var kv in Table)
             {
-                // Add the behavior class name
-                var classId = CollectSymbol(kv.Key, SymbolKind.SYMBOL_CLASS);
+                // Add the noun name
+                var classId = CollectSymbol(kv.Key, kind);
                 foreach (var loc in kv.Value)
                 {
                     // Mark where it is in the source
@@ -260,28 +395,7 @@ namespace SourcetrailAssetsIndexer
             return fileId;
         }
 
-        /// <summary>
-        /// Insert the declaration of the behavior or condition parameter
-        /// </summary>
-        /// <param name="fileName">The file that this occurs in</param>
-        /// <param name="Table">The table of parameter locations</param>
-        /// <returns>The file id</returns>
-        int UploadParamDecl(string fileName, Dictionary<string, List<Location>> Table)
-        {
-            // Create a file id for this file
-            var fileId = CollectFile(fileName, "JSON");
-            foreach (var kv in Table)
-            {
-                // Add the behavior class name
-                var classId = CollectSymbol(kv.Key, SymbolKind.SYMBOL_GLOBAL_VARIABLE);
-                foreach (var loc in kv.Value)
-                {
-                    // Mark where it is in the source
-                    CollectReferenceLocation(classId, fileId, loc);
-                }
-            }
-            return fileId;
-        }
+
 
         public static void CollectReferenceLocation(int referenceId, int fileId, Location loc)
         {

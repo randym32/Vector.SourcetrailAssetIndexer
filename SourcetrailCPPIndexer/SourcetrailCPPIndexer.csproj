@@ -73,11 +73,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Program.Shared.cs" />
     <Compile Include="ScanCPP.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="..\SourcetrailBTreeIndexer\DataCollector.cs" Link="DataCollector.cs" />
     <Compile Include="..\SourcetrailBTreeIndexer\NameHelper.cs" Link="NameHelper.cs" />
-    <Compile Include="..\SourcetrailBTreeIndexer\Program.Shared.cs" Link="Program.Shared.cs" />
     <Compile Include="..\SourcetrailBTreeIndexer\Sourcetrail\DefinitionKind.cs" Link="Sourcetrail\DefinitionKind.cs" />
     <Compile Include="..\SourcetrailBTreeIndexer\Sourcetrail\ReferenceKind.cs" Link="Sourcetrail\ReferenceKind.cs" />
     <Compile Include="..\SourcetrailBTreeIndexer\Sourcetrail\sourcetraildb.cs" Link="Sourcetrail\sourcetraildb.cs" />

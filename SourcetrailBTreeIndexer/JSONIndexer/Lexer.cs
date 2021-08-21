@@ -351,7 +351,7 @@ public partial class Lexer
             Val = Val * 10 + CA[Idx++] - '0';
 
         // Skip any suffix
-        if (Idx < CA.Length && ('u' == CA[Idx] || 'U' == CA[Idx]))
+        if (Idx < CA.Length && ('u' == CA[Idx] || 'U' == CA[Idx]|| 'f' == CA[Idx] || 'F' == CA[Idx]||'l' == CA[Idx] || 'L' == CA[Idx]))
             Idx++;
         Val *= sign;
         return true;
@@ -365,8 +365,12 @@ public partial class Lexer
     /// <returns>false if it is not a number, true if it is</returns>
     internal bool Number(out double Val)
     {
+        var start = Idx;
         if (!Integer(out Val))
+        {
+            Idx = start;
             return false;
+        }
         if (CA.Length <= Idx)
             return true;
         char Ch = CA[Idx];
@@ -377,11 +381,11 @@ public partial class Lexer
             Idx++;
             if (!Integer(out double right, false))
             {
-                Idx = tmp;
-                return false;
+                Idx = tmp+1;
+                return true;
             }
             // Count the digits so we can divide right
-            right /= Math.Pow(10,Idx-tmp-2);
+            right /= Math.Pow(10,Idx-tmp-1);
             Val += right;
         }
         if (CA.Length <= Idx)
@@ -392,6 +396,11 @@ public partial class Lexer
         {
             var tmp = Idx;
             Idx++;
+            if ('+' == CA[Idx])
+            {
+                Idx++;
+            }
+
             if (!Integer(out double right))
             {
                 Idx = tmp;
@@ -404,6 +413,12 @@ public partial class Lexer
         return true;
     }
 
+
+    /// <summary>
+    /// Attempts to have the next token match the given literal string
+    /// </summary>
+    /// <param name="Keyword"></param>
+    /// <returns></returns>
     internal bool KeywordMatch(string Keyword)
     {
         Preprocess();

@@ -368,11 +368,11 @@ namespace SourcetrailAssetsIndexer
                 {
                     var t = Task.Run(() =>
                     {
-                    // Get the text file
-                    var text2 = File.ReadAllText(currentFile);
+                        // Get the text file
+                        var text2 = File.ReadAllText(currentFile);
 
-                    // Get the dictionary
-                    var a = new Lexer(text2);
+                        // Get the dictionary
+                        var a = new Lexer(text2);
                         var b = new JSONParser().Expr(a);
 
                         ParsedFile[currentFile] = (Dictionary<string, Token2>)b.Value;

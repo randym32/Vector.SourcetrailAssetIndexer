@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourcetrailBTreeIndexer", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SourcetrailBTreeCoreIndexer", "SourcetrailBTreeCoreIndexer\SourcetrailBTreeCoreIndexer.csproj", "{9537077F-67EF-4862-A754-E0D7AB9CCCC1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7557}") = "SourcetrailCPPCoreIndexer", "SourcetrailCPPCoreIndexer\SourcetrailCPPCoreIndexer.csproj", "{9537077F-67EF-4862-A754-E0D7AB9CCCC2}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9E2D31DF-633C-41FD-9CE2-FC82500B0A93}"
 	ProjectSection(SolutionItems) = preProject
 		Demo-st-01.png = Demo-st-01.png
@@ -52,6 +54,14 @@ Global
 		{7B9BB2B4-9D9A-4CF3-99E4-1E6D393E2863}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7B9BB2B4-9D9A-4CF3-99E4-1E6D393E2863}.Release|x64.ActiveCfg = Release|x64
 		{7B9BB2B4-9D9A-4CF3-99E4-1E6D393E2863}.Release|x64.Build.0 = Release|x64
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Debug|x64.Build.0 = Debug|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Release|x64.ActiveCfg = Release|Any CPU
+		{9537077F-67EF-4862-A754-E0D7AB9CCCC2}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
