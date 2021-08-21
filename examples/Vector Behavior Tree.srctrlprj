@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <source_groups>
+        <source_group_00adf423-6c26-4017-b71d-3a57c222eaad>
+            <custom_command>D:\projects\SourceAssetsIndexer\bin\SourcetrailBTreeIndexer -i "%{SOURCE_FILE_PATH}" -of "%{DATABASE_FILE_PATH}"</custom_command>
+            <name>Scan behavior tree</name>
+            <run_in_parallel>1</run_in_parallel>
+            <source_extensions>
+                <source_extension>.json</source_extension>
+            </source_extensions>
+            <source_paths>
+                <source_path>/path/to/resources/config/engine/behaviorComponent/behaviors</source_path>
+            </source_paths>
+            <status>enabled</status>
+            <type>Custom Command Source Group</type>
+        </source_group_00adf423-6c26-4017-b71d-3a57c222eaad>
+    </source_groups>
+    <version>8</version>
+</config>
